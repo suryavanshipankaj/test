@@ -1,52 +1,16 @@
+import streamlit as st
+import pandas as pd
+from sqlalchemy import create_engine
+import mysql.connector
 
+# Database connection details
+db_username = 'root'
+db_password = '99999??'
+db_host = 'localhost'
+db_port = '3506'
+db_name = 'source'
 
-
-# Function to create a connection to the MySQL database
-def create_connection():
-    try:
-        conn = mysql.connector.connect(
-            host='localhost',  # e.g., 'localhost'
-            user='root',  # e.g., 'root'
-            password='99999??',
-            database='source'
-        )
-        if conn.is_connected():
-            return conn
-    except Error as e:
-        st.error(f"Error: {e}")
-        return None
-
-# Create table if it doesn't exist
-def create_table(conn):
-    query = '''
-    CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100),
-        email VARCHAR(100),
-        age INT
-    )'''
-    cursor = conn.cursor()
-    cursor.execute(query)
-    conn.commit()
-
-# Insert user data into the table
-def insert_user(conn, name, email, age):
-    query = '''
-    INSERT INTO users (name, email, age) VALUES (%s, %s, %s)
-    '''
-    cursor = conn.cursor()
-    cursor.execute(query, (name, email, age))
-    conn.commit()
-
-# Fetch all user data from the table
-def fetch_users(conn):
-    query = '''
-    SELECT * FROM users
-    '''
-    cursor = conn.cursor()
-    cursor.execute(query)
-    return cursor.fetchall()
-
+# Create a Streamlit form
 st.title('User Information Form')
 
 # Form inputs
@@ -71,16 +35,16 @@ if submit_button:
 
 # Upload CSV data to the database
 if st.button('Upload to Database'):
-    # Create a SQLAlchemy engine
-    engine = create_engine(f'mysql+pymysql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}')
-    
-    # Read the CSV file
-    user_data = pd.read_csv('user_data.csv')
-    
-    # Upload the data to the database
-    user_data.to_sql('users', engine, if_exists='append', index=False)
-    st.success('CSV data uploaded to the database.')
-
-# Run the Streamlit app
-if __name__ == '__main__':
-    st.write('Fill in the form and submit, then click "Upload to Database" to save the data.')
+    try:
+        # Create a SQLAlchemy engine
+        engine = create_engine(f'mysql+pymysql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}')
+        
+        # Read the CSV file
+        user_data = pd.read_csv('user_data.csv')
+        
+        # Upload the data to the database
+        user_data.to_sql('users', engine, if_exists='append', index=False)
+        st.success('CSV data uploaded to the database.')
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
+        print(e)  # Print error details for debugging
