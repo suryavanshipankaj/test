@@ -1,50 +1,82 @@
 import streamlit as st
-import pandas as pd
-from sqlalchemy import create_engine
 import mysql.connector
+from mysql.connector import Error
 
-# Database connection details
-db_username = 'root'
-db_password = '99999??'
-db_host = '10.0.33.60'
-db_port = '3306'
-db_name = 'source'
-
-# Create a Streamlit form
-st.title('User Information Form')
-
-# Form inputs
-with st.form(key='user_form'):
-    username = st.text_input('Username')
-    email = st.text_input('Email')
-    age = st.number_input('Age', min_value=0)
-    submit_button = st.form_submit_button(label='Submit')
-
-# Save form data to CSV
-if submit_button:
-    # Create a DataFrame from the input data
-    user_data = pd.DataFrame({
-        'Username': [username],
-        'Email': [email],
-        'Age': [age]
-    })
-    
-    # Save the DataFrame to a CSV file
-    user_data.to_csv('user_data.csv', index=False)
-    st.success('Form data saved to CSV file.')
-
-# Upload CSV data to the database
-if st.button('Upload to Database'):
+# Function to create a connection to the MySQL database
+def create_connection():
     try:
-        # Create a SQLAlchemy engine
-        engine = create_engine(f'mysql+pymysql://{db_username}:{db_password}@{db_host}:{db_port}/{db_name}')
-        
-        # Read the CSV file
-        user_data = pd.read_csv('user_data.csv')
-        
-        # Upload the data to the database
-        user_data.to_sql('users', engine, if_exists='append', index=False)
-        st.success('CSV data uploaded to the database.')
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-        print(e)  # Print error details for debugging
+        conn = mysql.connector.connect(
+            host='10.0.33.60',  # e.g., 'localhost'
+            user='root',  # e.g., 'root'
+            password='99999??',
+            database='source'
+        )
+        if conn.is_connected():
+            return conn
+    except Error as e:
+        st.error(f"Error: {e}")
+        return None
+
+# Create table if it doesn't exist
+def create_table(conn):
+    query = '''
+    CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100),
+        email VARCHAR(100),
+        age INT
+    )'''
+    cursor = conn.cursor()
+    cursor.execute(query)
+    conn.commit()
+
+# Insert user data into the table
+def insert_user(conn, name, email, age):
+    query = '''
+    INSERT INTO users (name, email, age) VALUES (%s, %s, %s)
+    '''
+    cursor = conn.cursor()
+    cursor.execute(query, (name, email, age))
+    conn.commit()
+
+# Fetch all user data from the table
+def fetch_users(conn):
+    query = '''
+    SELECT * FROM users
+    '''
+    cursor = conn.cursor()
+    cursor.execute(query)
+    return cursor.fetchall()
+
+# Streamlit app
+st.title('User Information Collection')
+
+# Establish connection to the database
+conn = create_connection()
+if conn:
+    create_table(conn)
+
+    # Form to collect user information
+    with st.form(key='user_form'):
+        name = st.text_input('Name')
+        email = st.text_input('Email')
+        age = st.number_input('Age', min_value=0, max_value=120)
+        submit_button = st.form_submit_button(label='Submit')
+
+    # Save data to the database
+    if submit_button:
+        if name and email and age:
+            insert_user(conn, name, email, age)
+            st.success('User information saved successfully!')
+        else:
+            st.error('Please fill in all fields')
+
+    # Display saved data
+    if st.checkbox('Show user data'):
+        users = fetch_users(conn)
+        st.write(users)
+
+    # Close the database connection when the app is done
+    conn.close()
+else:
+    st.error('Failed to connect to the database')
