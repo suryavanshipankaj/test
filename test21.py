@@ -6,7 +6,7 @@ import mysql.connector
 # Database connection details
 db_username = 'root'
 db_password = '99999??'
-db_host = 'localhost'
+db_host = '10.0.33.60'
 db_port = '3306'
 db_name = 'source'
 
