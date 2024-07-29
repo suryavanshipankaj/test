@@ -7,7 +7,7 @@ import mysql.connector
 db_username = 'root'
 db_password = '99999??'
 db_host = 'localhost'
-db_port = '3506'
+db_port = '3306'
 db_name = 'source'
 
 # Create a Streamlit form
