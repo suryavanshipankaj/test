@@ -4,25 +4,37 @@ import pandas as pd
 # Allow the user to input a custom title
 dashboard_title = st.text_input("Enter the dashboard title", "HR Dashboard")
 
-# Load data from KNIME exported files
-data = pd.read_csv('knime_output.csv')
+# File uploader for the user to upload a CSV file
+uploaded_file = st.file_uploader("Upload your KNIME output CSV", type="csv")
 
-# Streamlit dashboard
-st.title(dashboard_title)  # Use the user-defined title
-st.write('Employee Salary Prediction')
+if uploaded_file is not None:
+    # Read the uploaded CSV file
+    try:
+        data = pd.read_csv(uploaded_file)
 
-# Display data
-st.dataframe(data)
+        # Streamlit dashboard
+        st.title(dashboard_title)  # Use the user-defined title
+        st.write('Employee Salary Prediction')
 
-# Add more interactive user inputs (example: filter data by experience)
-min_experience = st.slider('Minimum Experience (years)', min_value=int(data['Experience'].min()), max_value=int(data['Experience'].max()), value=int(data['Experience'].min()))
+        # Display data
+        st.dataframe(data)
 
-# Filter data based on user input
-filtered_data = data[data['Experience'] >= min_experience]
+        # Add more interactive user inputs (example: filter data by experience)
+        min_experience = st.slider('Minimum Experience (years)', min_value=int(data['Experience'].min()), max_value=int(data['Experience'].max()), value=int(data['Experience'].min()))
 
-# Display filtered data and chart
-st.write(f"Filtered Data for Employees with at least {min_experience} years of experience:")
-st.dataframe(filtered_data)
+        # Filter data based on user input
+        filtered_data = data[data['Experience'] >= min_experience]
 
-# Add charts/plots as needed
-st.line_chart(filtered_data[['Experience', 'Predicted Salary']])
+        # Display filtered data and chart
+        st.write(f"Filtered Data for Employees with at least {min_experience} years of experience:")
+        st.dataframe(filtered_data)
+
+        # Add charts/plots as needed
+        st.line_chart(filtered_data[['Experience', 'Predicted Salary']])
+
+    except Exception as e:
+        st.error(f"An error occurred while processing the file: {e}")
+
+else:
+    st.info("Please upload a CSV file to see the analysis.")
+
