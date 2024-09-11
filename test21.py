@@ -1,82 +1,28 @@
 import streamlit as st
-import mysql.connector
-from mysql.connector import Error
+import pandas as pd
 
-# Function to create a connection to the MySQL database
-def create_connection():
-    try:
-        conn = mysql.connector.connect(
-            host='10.0.33.60',  # e.g., 'localhost'
-            user='root',  # e.g., 'root'
-            password='99999??',
-            database='source'
-        )
-        if conn.is_connected():
-            return conn
-    except Error as e:
-        st.error(f"Error: {e}")
-        return None
+# Allow the user to input a custom title
+dashboard_title = st.text_input("Enter the dashboard title", "HR Dashboard")
 
-# Create table if it doesn't exist
-def create_table(conn):
-    query = '''
-    CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100),
-        email VARCHAR(100),
-        age INT
-    )'''
-    cursor = conn.cursor()
-    cursor.execute(query)
-    conn.commit()
+# Load data from KNIME exported files
+data = pd.read_csv('knime_output.csv')
 
-# Insert user data into the table
-def insert_user(conn, name, email, age):
-    query = '''
-    INSERT INTO users (name, email, age) VALUES (%s, %s, %s)
-    '''
-    cursor = conn.cursor()
-    cursor.execute(query, (name, email, age))
-    conn.commit()
+# Streamlit dashboard
+st.title(dashboard_title)  # Use the user-defined title
+st.write('Employee Salary Prediction')
 
-# Fetch all user data from the table
-def fetch_users(conn):
-    query = '''
-    SELECT * FROM users
-    '''
-    cursor = conn.cursor()
-    cursor.execute(query)
-    return cursor.fetchall()
+# Display data
+st.dataframe(data)
 
-# Streamlit app
-st.title('User Information Collection')
+# Add more interactive user inputs (example: filter data by experience)
+min_experience = st.slider('Minimum Experience (years)', min_value=int(data['Experience'].min()), max_value=int(data['Experience'].max()), value=int(data['Experience'].min()))
 
-# Establish connection to the database
-conn = create_connection()
-if conn:
-    create_table(conn)
+# Filter data based on user input
+filtered_data = data[data['Experience'] >= min_experience]
 
-    # Form to collect user information
-    with st.form(key='user_form'):
-        name = st.text_input('Name')
-        email = st.text_input('Email')
-        age = st.number_input('Age', min_value=0, max_value=120)
-        submit_button = st.form_submit_button(label='Submit')
+# Display filtered data and chart
+st.write(f"Filtered Data for Employees with at least {min_experience} years of experience:")
+st.dataframe(filtered_data)
 
-    # Save data to the database
-    if submit_button:
-        if name and email and age:
-            insert_user(conn, name, email, age)
-            st.success('User information saved successfully!')
-        else:
-            st.error('Please fill in all fields')
-
-    # Display saved data
-    if st.checkbox('Show user data'):
-        users = fetch_users(conn)
-        st.write(users)
-
-    # Close the database connection when the app is done
-    conn.close()
-else:
-    st.error('Failed to connect to the database')
+# Add charts/plots as needed
+st.line_chart(filtered_data[['Experience', 'Predicted Salary']])
